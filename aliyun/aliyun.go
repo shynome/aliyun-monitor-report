@@ -2,12 +2,24 @@ package aliyun
 
 import (
 	"os"
+
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 )
+
+type CommonParams struct {
+	RegionID string `json:"RegionId"`
+}
 
 // Aliyun instance
 type Aliyun struct {
 	AccessKey       string
 	AccessKeySecret string
+}
+
+// GetClient reurn a cms client
+func (aliyun *Aliyun) GetClient(regionID string) (client *cms.Client, err error) {
+	client, err = cms.NewClientWithAccessKey(regionID, aliyun.AccessKey, aliyun.AccessKeySecret)
+	return
 }
 
 // NewWithEnv new Aliyun with env

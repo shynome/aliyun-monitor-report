@@ -7,4 +7,5 @@ import (
 func init() {
 	g := api.Register("/group")
 	g.Any("/list", List)
+	g.Any("/details", Details)
 }

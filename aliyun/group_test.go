@@ -6,7 +6,7 @@ import (
 
 func TestGetGroupList(t *testing.T) {
 	keyword := "nnnnn"
-	res, err := aliyun.GetGroupList(&GetGroupListParams{RegionID: "cn-hangzhou", Keyword: keyword})
+	res, err := aliyun.GetGroupList(&GetGroupListParams{CommonParams{"cn-hangzhou"}, keyword})
 	if err != nil {
 		t.Error(err)
 		return
@@ -16,5 +16,26 @@ func TestGetGroupList(t *testing.T) {
 		return
 	}
 	t.Log(res)
+	return
+}
+
+func TestGetGroupDetails(t *testing.T) {
+	groupList, err := aliyun.GetGroupList(&GetGroupListParams{})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	resources := groupList.Resources.Resource
+	if len(resources) == 0 {
+		t.Error("can't find group")
+		return
+	}
+	resource := resources[0]
+	groupDetails, err := aliyun.GetGroupDetails(&GetGroupDetailsParams{GroupID: resource.GroupId})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	t.Log(groupDetails)
 	return
 }
