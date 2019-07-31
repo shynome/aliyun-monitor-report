@@ -1,4 +1,4 @@
-package base
+package monitor
 
 import (
 	"net/http"
@@ -7,9 +7,9 @@ import (
 	"github.com/shynome/aliyun-monitor-report/api/aliyun"
 )
 
-// Projects aliyun monitor support
-func Projects(c echo.Context) (err error) {
-	res, err := aliyun.Instance.GetBaseProjects()
+// Namespaces of aliyun monitor
+func Namespaces(c echo.Context) (err error) {
+	res, err := aliyun.Instance.GetMonitorNamespaces()
 	if err != nil {
 		return
 	}

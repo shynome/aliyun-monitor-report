@@ -5,7 +5,7 @@ import (
 )
 
 func TestGetBaseProjects(t *testing.T) {
-	res, err := aliyun.GetBaseProjects()
+	res, err := aliyun.GetMonitorNamespaces()
 	if err != nil {
 		t.Error(err)
 		return
