@@ -6,6 +6,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 )
 
+// CommonParams type
 type CommonParams struct {
 	RegionID string `json:"RegionId"`
 }
