@@ -5,6 +5,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 )
 
+// MonitorNamespace type
 type MonitorNamespace struct {
 	Namespace   string
 	Description string
