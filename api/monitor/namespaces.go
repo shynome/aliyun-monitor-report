@@ -9,7 +9,8 @@ import (
 
 // Namespaces of aliyun monitor
 func Namespaces(c echo.Context) (err error) {
-	res, err := aliyun.Instance.GetMonitorNamespaces()
+	aliyunInstance := c.(*aliyun.Context).GetAliyunInstance()
+	res, err := aliyunInstance.GetMonitorNamespaces()
 	if err != nil {
 		return
 	}

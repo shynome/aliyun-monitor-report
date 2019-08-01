@@ -14,7 +14,8 @@ func List(c echo.Context) (err error) {
 	if err = c.Bind(params); err != nil {
 		return
 	}
-	res, err := aliyun.Instance.GetGroupList(params)
+	aliyunInstance := c.(*aliyun.Context).GetAliyunInstance()
+	res, err := aliyunInstance.GetGroupList(params)
 	c.JSON(http.StatusOK, res)
 	return
 }

@@ -14,7 +14,8 @@ func Details(c echo.Context) (err error) {
 	if err = c.Bind(params); err != nil {
 		return
 	}
-	res, err := aliyun.Instance.GetGroupDetails(params)
+	aliyunInstance := c.(*aliyun.Context).GetAliyunInstance()
+	res, err := aliyunInstance.GetGroupDetails(params)
 	c.JSON(http.StatusOK, res)
 	return
 }
