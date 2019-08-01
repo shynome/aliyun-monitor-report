@@ -57,8 +57,17 @@ type GetGroupDetailsParams struct {
 	Keyword  string ``
 }
 
+// GroupDetails type
+type GroupDetails struct {
+	Category     string ``                  // 产品名称缩写
+	ID           int    `json:"Id"`         // 资源ID
+	InstanceID   string `json:"InstanceId"` // 实例ID，实例的唯一标识
+	InstanceName string ``                  // 实例名称
+	RegionID     string `json:"RegionId"`
+}
+
 // GetGroupDetails by id
-func (aliyun *Aliyun) GetGroupDetails(params *GetGroupDetailsParams) (response *cms.DescribeMonitorGroupInstancesResponse, err error) {
+func (aliyun *Aliyun) GetGroupDetails(params *GetGroupDetailsParams) (groupDetailsList []*GroupDetails, err error) {
 
 	client, err := aliyun.GetClient(params.RegionID)
 	if err != nil {
@@ -72,7 +81,18 @@ func (aliyun *Aliyun) GetGroupDetails(params *GetGroupDetailsParams) (response *
 	request.Category = params.Category
 	request.PageSize = requests.NewInteger(99)
 
-	response, err = client.DescribeMonitorGroupInstances(request)
+	response, err := client.DescribeMonitorGroupInstances(request)
+
+	for _, item := range response.Resources.Resource {
+		groupDetails := &GroupDetails{
+			Category:     item.Category,
+			ID:           item.Id,
+			InstanceID:   item.InstanceId,
+			InstanceName: item.InstanceName,
+			RegionID:     item.RegionId,
+		}
+		groupDetailsList = append(groupDetailsList, groupDetails)
+	}
 
 	return
 }
