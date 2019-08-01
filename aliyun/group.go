@@ -11,8 +11,15 @@ type GetGroupListParams struct {
 	Keyword string
 }
 
+// Group type
+type Group struct {
+	GroupID   int `json:"GroupId"`
+	GroupName string
+	Type      string
+}
+
 // GetGroupList func
-func (aliyun *Aliyun) GetGroupList(params *GetGroupListParams) (response *cms.DescribeMonitorGroupsResponse, err error) {
+func (aliyun *Aliyun) GetGroupList(params *GetGroupListParams) (groupList []*Group, err error) {
 
 	client, err := aliyun.GetClient(params.RegionID)
 	if err != nil {
@@ -24,10 +31,20 @@ func (aliyun *Aliyun) GetGroupList(params *GetGroupListParams) (response *cms.De
 	request.Keyword = params.Keyword
 	request.PageSize = requests.NewInteger(99)
 
-	response, err = client.DescribeMonitorGroups(request)
+	response, err := client.DescribeMonitorGroups(request)
 	if err != nil {
 		return
 	}
+
+	for _, item := range response.Resources.Resource {
+		group := &Group{
+			GroupID:   item.GroupId,
+			GroupName: item.GroupName,
+			Type:      item.Type,
+		}
+		groupList = append(groupList, group)
+	}
+
 	return
 
 }
