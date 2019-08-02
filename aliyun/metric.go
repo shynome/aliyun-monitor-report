@@ -42,3 +42,28 @@ func (aliyun *Aliyun) GetMetricList(params *GetMetricListParams) (response *cms.
 
 	return
 }
+
+// GetMetricReport html
+func (aliyun *Aliyun) GetMetricReport(params *GetMetricListParams) (response interface{}, err error) {
+
+	client, err := aliyun.GetClient(params.RegionID)
+	if err != nil {
+		return
+	}
+
+	request := cms.CreateDescribeMetricTopRequest()
+	request.Scheme = "https"
+
+	request.Namespace = params.Namespace
+	request.Dimensions = params.Dimensions
+	request.MetricName = params.MetricName
+	request.StartTime = params.StartTime
+	request.EndTime = params.EndTime
+	request.Orderby = "Maximum"
+	request.Length = "1"
+	request.OrderDesc = "False"
+
+	response, err = client.DescribeMetricTop(request)
+
+	return
+}
