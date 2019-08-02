@@ -4,19 +4,9 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 )
 
-// Namespaces of aliyun monitor product
-var Namespaces = struct {
-	CDN   string
-	SLB   string
-	Redis string
-	ECS   string
-	MySQL string
-}{
-	CDN:   "acs_cdn",
-	SLB:   "acs_slb_dashboard",
-	Redis: "acs_kvstore",
-	ECS:   "acs_ecs_dashboard",
-	MySQL: "acs_rds_dashboard",
+// Dimension type
+type Dimension struct {
+	InstanceID string `json:"instanceId"`
 }
 
 // GetMetricListParams type
