@@ -1,12 +1,26 @@
 package aliyun
 
 import (
+	"encoding/json"
+
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 )
 
 // Dimension type
 type Dimension struct {
 	InstanceID string `json:"instanceId"`
+}
+
+// Datapoint type
+type Datapoint struct {
+	Timestamp  int
+	InstanceID string `json:"instanceId"`
+	Minimum    float64
+	Average    float64
+	Maximum    float64
+	// Order      int
+	// UserID     string `json:"userId"`
+	// Count      int `json:"_count"`
 }
 
 // GetMetricListParams type
@@ -44,7 +58,7 @@ func (aliyun *Aliyun) GetMetricList(params *GetMetricListParams) (response *cms.
 }
 
 // GetMetricReport html
-func (aliyun *Aliyun) GetMetricReport(params *GetMetricListParams) (response interface{}, err error) {
+func (aliyun *Aliyun) GetMetricReport(params *GetMetricListParams) (datapoints []Datapoint, err error) {
 
 	client, err := aliyun.GetClient(params.RegionID)
 	if err != nil {
@@ -63,7 +77,14 @@ func (aliyun *Aliyun) GetMetricReport(params *GetMetricListParams) (response int
 	request.Length = "1"
 	request.OrderDesc = "False"
 
-	response, err = client.DescribeMetricTop(request)
+	response, err := client.DescribeMetricTop(request)
+	if err != nil {
+		return
+	}
+
+	if err = json.Unmarshal([]byte(response.Datapoints), &datapoints); err != nil {
+		return
+	}
 
 	return
 }

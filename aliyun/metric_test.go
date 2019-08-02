@@ -2,11 +2,10 @@ package aliyun
 
 import (
 	"encoding/json"
-	"strings"
 	"testing"
 )
 
-func TestGetMetricList(t *testing.T) {
+func getECSDimensions() string {
 
 	groups, _ := aliyun.GetGroupList(&GetGroupListParams{})
 
@@ -21,15 +20,35 @@ func TestGetMetricList(t *testing.T) {
 		dimensions = append(dimensions, Dimension{InstanceID: resource.InstanceID})
 	}
 
-	dimensionsBytes, err := json.Marshal(dimensions)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	dimensionsBytes, _ := json.Marshal(dimensions)
+
+	return string(dimensionsBytes)
+
+}
+
+func TestGetMetricList(t *testing.T) {
+
+	dimensions := getECSDimensions()
 
 	res, err := aliyun.GetMetricList(&GetMetricListParams{
-		Dimensions: string(dimensionsBytes),
-		Namespace:  "acs_" + strings.ToLower("ECS"),
+		Dimensions: dimensions,
+		Namespace:  "acs_ecs",
+		MetricName: "CPUUtilization",
+	})
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(res)
+	return
+}
+
+func TestGetMetricReport(t *testing.T) {
+
+	dimensions := getECSDimensions()
+
+	res, err := aliyun.GetMetricReport(&GetMetricListParams{
+		Dimensions: dimensions,
+		Namespace:  "acs_ecs",
 		MetricName: "CPUUtilization",
 	})
 	if err != nil {
