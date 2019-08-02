@@ -49,16 +49,16 @@ func (aliyun *Aliyun) GetGroupList(params *GetGroupListParams) (groupList []*Gro
 
 }
 
-// GetGroupDetailsParams type
-type GetGroupDetailsParams struct {
+// GetGroupResourceParams type
+type GetGroupResourceParams struct {
 	CommonParams
 	GroupID  int    `json:"GroupId"`
 	Category string ``
 	Keyword  string ``
 }
 
-// GroupDetails type
-type GroupDetails struct {
+// GroupResource type
+type GroupResource struct {
 	Category     string ``                  // 产品名称缩写
 	ID           int    `json:"Id"`         // 资源ID
 	InstanceID   string `json:"InstanceId"` // 实例ID，实例的唯一标识
@@ -66,8 +66,8 @@ type GroupDetails struct {
 	RegionID     string `json:"RegionId"`
 }
 
-// GetGroupDetails by id
-func (aliyun *Aliyun) GetGroupDetails(params *GetGroupDetailsParams) (groupDetailsList []*GroupDetails, err error) {
+// GetGroupResource by id
+func (aliyun *Aliyun) GetGroupResource(params *GetGroupResourceParams) (groupDetailsList []*GroupResource, err error) {
 
 	client, err := aliyun.GetClient(params.RegionID)
 	if err != nil {
@@ -84,7 +84,7 @@ func (aliyun *Aliyun) GetGroupDetails(params *GetGroupDetailsParams) (groupDetai
 	response, err := client.DescribeMonitorGroupInstances(request)
 
 	for _, item := range response.Resources.Resource {
-		groupDetails := &GroupDetails{
+		groupDetails := &GroupResource{
 			Category:     item.Category,
 			ID:           item.Id,
 			InstanceID:   item.InstanceId,
