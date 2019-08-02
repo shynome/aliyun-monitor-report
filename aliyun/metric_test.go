@@ -12,22 +12,24 @@ func TestGetMetricList(t *testing.T) {
 
 	resources, _ := aliyun.GetGroupResources(&GetGroupResourcesParams{GroupID: groups[0].GroupID})
 
-	resource := resources[0]
+	dimensions := []Dimension{}
 
-	dimensions := []Dimension{
-		Dimension{
-			InstanceID: resource.InstanceID,
-		},
+	for _, resource := range resources {
+		if resource.Category != "ECS" {
+			continue
+		}
+		dimensions = append(dimensions, Dimension{InstanceID: resource.InstanceID})
 	}
+
 	dimensionsBytes, err := json.Marshal(dimensions)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	t.Log(dimensionsBytes)
+
 	res, err := aliyun.GetMetricList(&GetMetricListParams{
 		Dimensions: string(dimensionsBytes),
-		Namespace:  "acs_" + strings.ToLower(resource.Category),
+		Namespace:  "acs_" + strings.ToLower("ECS"),
 		MetricName: "CPUUtilization",
 	})
 	if err != nil {
