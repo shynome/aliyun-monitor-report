@@ -19,7 +19,7 @@ func TestGetGroupList(t *testing.T) {
 	return
 }
 
-func TestGetGroupResource(t *testing.T) {
+func TestGetGroupResources(t *testing.T) {
 	groupDetailsList, err := aliyun.GetGroupList(&GetGroupListParams{})
 	if err != nil {
 		t.Error(err)
@@ -30,7 +30,7 @@ func TestGetGroupResource(t *testing.T) {
 		return
 	}
 	resource := groupDetailsList[0]
-	groupDetails, err := aliyun.GetGroupResource(&GetGroupResourceParams{GroupID: resource.GroupID})
+	groupDetails, err := aliyun.GetGroupResources(&GetGroupResourcesParams{GroupID: resource.GroupID})
 	if err != nil {
 		t.Error(err)
 		return

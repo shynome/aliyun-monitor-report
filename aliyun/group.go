@@ -49,8 +49,8 @@ func (aliyun *Aliyun) GetGroupList(params *GetGroupListParams) (groupList []*Gro
 
 }
 
-// GetGroupResourceParams type
-type GetGroupResourceParams struct {
+// GetGroupResourcesParams type
+type GetGroupResourcesParams struct {
 	CommonParams
 	GroupID  int    `json:"GroupId"`
 	Category string ``
@@ -66,8 +66,8 @@ type GroupResource struct {
 	RegionID     string `json:"RegionId"`
 }
 
-// GetGroupResource by id
-func (aliyun *Aliyun) GetGroupResource(params *GetGroupResourceParams) (groupDetailsList []*GroupResource, err error) {
+// GetGroupResources by id
+func (aliyun *Aliyun) GetGroupResources(params *GetGroupResourcesParams) (groupDetailsList []*GroupResource, err error) {
 
 	client, err := aliyun.GetClient(params.RegionID)
 	if err != nil {

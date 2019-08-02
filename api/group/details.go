@@ -10,12 +10,12 @@ import (
 
 // Resources group
 func Resources(c echo.Context) (err error) {
-	params := &AliyunType.GetGroupResourceParams{}
+	params := &AliyunType.GetGroupResourcesParams{}
 	if err = c.Bind(params); err != nil {
 		return
 	}
 	aliyunInstance := c.(*aliyun.Context).GetAliyunInstance()
-	res, err := aliyunInstance.GetGroupResource(params)
+	res, err := aliyunInstance.GetGroupResources(params)
 	c.JSON(http.StatusOK, res)
 	return
 }
