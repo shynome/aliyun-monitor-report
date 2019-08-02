@@ -67,7 +67,7 @@ type GroupResource struct {
 }
 
 // GetGroupResources by id
-func (aliyun *Aliyun) GetGroupResources(params *GetGroupResourcesParams) (groupDetailsList []*GroupResource, err error) {
+func (aliyun *Aliyun) GetGroupResources(params *GetGroupResourcesParams) (resources []*GroupResource, err error) {
 
 	client, err := aliyun.GetClient(params.RegionID)
 	if err != nil {
@@ -84,14 +84,14 @@ func (aliyun *Aliyun) GetGroupResources(params *GetGroupResourcesParams) (groupD
 	response, err := client.DescribeMonitorGroupInstances(request)
 
 	for _, item := range response.Resources.Resource {
-		groupDetails := &GroupResource{
+		resource := &GroupResource{
 			Category:     item.Category,
 			ID:           item.Id,
 			InstanceID:   item.InstanceId,
 			InstanceName: item.InstanceName,
 			RegionID:     item.RegionId,
 		}
-		groupDetailsList = append(groupDetailsList, groupDetails)
+		resources = append(resources, resource)
 	}
 
 	return
