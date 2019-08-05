@@ -73,7 +73,7 @@ func (aliyun *Aliyun) GetMetricTop(params *GetMetricListParams) (datapoints []Da
 	request.Dimensions = params.Dimensions
 	request.StartTime = params.StartTime
 	request.EndTime = params.EndTime
-	request.Express = `{"orderby":"Maximum","groupby":["Maximum"]}`
+	request.Express = `{"orderby":"Maximum"}`
 	request.Length = "1"
 
 	response, err := client.DescribeMetricList(request)
