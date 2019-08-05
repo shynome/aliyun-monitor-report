@@ -27,6 +27,8 @@ type GetMetricListParams struct {
 	Period     string
 	StartTime  string
 	EndTime    string
+	Express    string
+	Length     string
 }
 
 // GetMetricList data
@@ -46,6 +48,8 @@ func (aliyun *Aliyun) GetMetricList(params *GetMetricListParams) (response *cms.
 	request.Dimensions = params.Dimensions
 	request.StartTime = params.StartTime
 	request.EndTime = params.EndTime
+	request.Express = params.Express
+	request.Length = params.Length
 
 	response, err = client.DescribeMetricList(request)
 
