@@ -6,11 +6,6 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 )
 
-// Dimension type
-type Dimension struct {
-	InstanceID string `json:"instanceId"`
-}
-
 // Datapoint type
 type Datapoint struct {
 	Timestamp  int
@@ -57,8 +52,39 @@ func (aliyun *Aliyun) GetMetricList(params *GetMetricListParams) (response *cms.
 	return
 }
 
-// GetMetricReport html
-func (aliyun *Aliyun) GetMetricReport(params *GetMetricListParams) (datapoints []Datapoint, err error) {
+// GetMetricTop data
+func (aliyun *Aliyun) GetMetricTop(params *GetMetricListParams) (datapoints []Datapoint, err error) {
+
+	client, err := aliyun.GetClient(params.RegionID)
+	if err != nil {
+		return
+	}
+
+	request := cms.CreateDescribeMetricListRequest()
+	request.Scheme = "https"
+
+	request.MetricName = params.MetricName
+	request.Namespace = params.Namespace
+	request.Period = params.Period
+	request.Dimensions = params.Dimensions
+	request.StartTime = params.StartTime
+	request.EndTime = params.EndTime
+	request.Express = `{"orderby":"Maximum","groupby":["Maximum"]}`
+	request.Length = "1"
+
+	response, err := client.DescribeMetricList(request)
+	if err != nil {
+		return
+	}
+
+	if err = json.Unmarshal([]byte(response.Datapoints), &datapoints); err != nil {
+		return
+	}
+
+	return
+}
+
+func (aliyun *Aliyun) notWorkGetMetricTop(params *GetMetricListParams) (datapoints []Datapoint, err error) {
 
 	client, err := aliyun.GetClient(params.RegionID)
 	if err != nil {
