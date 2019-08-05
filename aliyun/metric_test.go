@@ -42,11 +42,11 @@ func TestGetMetricList(t *testing.T) {
 	return
 }
 
-func TestGetMetricReport(t *testing.T) {
+func TestGetMetricTop(t *testing.T) {
 
 	dimensions := getECSDimensions()
 
-	res, err := aliyun.GetMetricReport(&GetMetricListParams{
+	res, err := aliyun.GetMetricTop(&GetMetricListParams{
 		Dimensions: dimensions,
 		Namespace:  "acs_ecs",
 		MetricName: "CPUUtilization",
