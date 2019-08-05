@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/shynome/aliyun-monitor-report/api/aliyun"
+	aliyun "github.com/shynome/aliyun-monitor-report/aliyun/echo"
 )
 
 // Namespaces of aliyun monitor

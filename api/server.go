@@ -2,7 +2,7 @@ package api
 
 import (
 	"github.com/labstack/echo/v4"
-	"github.com/shynome/aliyun-monitor-report/api/aliyun"
+	aliyun "github.com/shynome/aliyun-monitor-report/aliyun/echo"
 )
 
 // Server all

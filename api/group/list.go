@@ -5,7 +5,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	AliyunType "github.com/shynome/aliyun-monitor-report/aliyun"
-	"github.com/shynome/aliyun-monitor-report/api/aliyun"
+	aliyun "github.com/shynome/aliyun-monitor-report/aliyun/echo"
 )
 
 // List group
