@@ -57,6 +57,7 @@ func (aliyun *Aliyun) GetMetricList(params *GetMetricListParams) (response *cms.
 	return
 }
 
+// GetMetricTopParams type
 type GetMetricTopParams struct {
 	GetMetricListParams
 	Orderby string
