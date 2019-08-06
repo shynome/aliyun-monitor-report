@@ -17,7 +17,8 @@ func getECSDimensions() string {
 		if resource.Category != "ECS" {
 			continue
 		}
-		dimensions = append(dimensions, Dimension{InstanceID: resource.InstanceID})
+		dimensions = append(dimensions, Dimension{resource.InstanceID})
+		break
 	}
 
 	dimensionsBytes, _ := json.Marshal(dimensions)
