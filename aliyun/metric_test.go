@@ -47,10 +47,12 @@ func TestGetMetricTop(t *testing.T) {
 
 	dimensions := getECSDimensions()
 
-	res, err := aliyun.GetMetricTop(&GetMetricListParams{
-		Dimensions: dimensions,
-		Namespace:  "acs_ecs",
-		MetricName: "CPUUtilization",
+	res, err := aliyun.GetMetricTop(&GetMetricTopParams{
+		GetMetricListParams: GetMetricListParams{
+			Dimensions: dimensions,
+			Namespace:  "acs_ecs",
+			MetricName: "CPUUtilization",
+		},
 	})
 	if err != nil {
 		t.Error(err)

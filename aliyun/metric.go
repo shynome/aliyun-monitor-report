@@ -2,6 +2,7 @@ package aliyun
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 )
@@ -56,8 +57,18 @@ func (aliyun *Aliyun) GetMetricList(params *GetMetricListParams) (response *cms.
 	return
 }
 
+type GetMetricTopParams struct {
+	GetMetricListParams
+	Orderby string
+}
+
 // GetMetricTop data
-func (aliyun *Aliyun) GetMetricTop(params *GetMetricListParams) (datapoints []Datapoint, err error) {
+func (aliyun *Aliyun) GetMetricTop(params *GetMetricTopParams) (datapoints []Datapoint, err error) {
+
+	orderBy := params.Orderby
+	if orderBy == "" {
+		orderBy = "Maximum"
+	}
 
 	client, err := aliyun.GetClient(params.RegionID)
 	if err != nil {
@@ -73,7 +84,7 @@ func (aliyun *Aliyun) GetMetricTop(params *GetMetricListParams) (datapoints []Da
 	request.Dimensions = params.Dimensions
 	request.StartTime = params.StartTime
 	request.EndTime = params.EndTime
-	request.Express = `{"orderby":"Maximum"}`
+	request.Express = fmt.Sprintf(`{"orderby":"%v"}`, orderBy)
 	request.Length = "1"
 
 	response, err := client.DescribeMetricList(request)
@@ -88,7 +99,12 @@ func (aliyun *Aliyun) GetMetricTop(params *GetMetricListParams) (datapoints []Da
 	return
 }
 
-func (aliyun *Aliyun) notWorkGetMetricTop(params *GetMetricListParams) (datapoints []Datapoint, err error) {
+func (aliyun *Aliyun) notWorkGetMetricTop(params *GetMetricTopParams) (datapoints []Datapoint, err error) {
+
+	orderBy := params.Orderby
+	if orderBy == "" {
+		orderBy = "Maximum"
+	}
 
 	client, err := aliyun.GetClient(params.RegionID)
 	if err != nil {
@@ -103,7 +119,7 @@ func (aliyun *Aliyun) notWorkGetMetricTop(params *GetMetricListParams) (datapoin
 	request.MetricName = params.MetricName
 	request.StartTime = params.StartTime
 	request.EndTime = params.EndTime
-	request.Orderby = "Maximum"
+	request.Orderby = orderBy
 	request.Length = "1"
 	request.OrderDesc = "False"
 
