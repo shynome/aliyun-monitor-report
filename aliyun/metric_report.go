@@ -1,11 +1,9 @@
 package aliyun
 
 import (
-	"fmt"
-
 	"encoding/json"
-
-	"github.com/thoas/go-funk"
+	"fmt"
+	"strings"
 )
 
 // GetMetricReportParams type
@@ -19,8 +17,8 @@ type GetMetricReportParams struct {
 type DimensionReport struct {
 	Name        string
 	DisplayName string
-	Max         []string
-	Avg         []string
+	Max         string
+	Avg         string
 }
 
 // MetricReport type
@@ -45,8 +43,8 @@ type ReportDimension struct {
 var DefaultReportDimensions = map[string][]ReportDimension{
 	"ECS": {
 		{"CPU", "cpu_total"},
-		{"内存", "mem.usedutilization"},
-		{"连接数", "cpu_total"},
+		{"内存", "memory_usedutilization"},
+		{"连接数", "concurrentConnections"},
 	},
 	"RDS": {
 		{"CPU 使用率", ""},
@@ -70,17 +68,85 @@ var DefaultReportDimensions = map[string][]ReportDimension{
 	},
 }
 
-func (aliyun *Aliyun) getMetricReport(resource []*GroupResource, report chan MetricReport, err chan error, quit chan int) {
-	dimensions := funk.Map(resource, func(r *GroupResource) Dimension {
-		return Dimension{InstanceID: r.InstanceID}
-	}).([]Dimension)
-	dimensionsStr, jsonError := json.Marshal(dimensions)
+type getMetricReportParams struct {
+	*GetMetricReportParams
+	category  string
+	resources []*GroupResource
+	report    chan MetricReport
+	err       chan error
+}
+
+func getNamespace(category string) string {
+	return "acs_" + strings.ToLower(category)
+}
+
+func (aliyun *Aliyun) getMetricReport(params getMetricReportParams) {
+
+	resp := map[string]map[string]DimensionReport{}
+	dimensions := make([]Dimension, len(params.resources))
+
+	for i, r := range params.resources {
+		dimensions[i] = Dimension{InstanceID: r.InstanceID}
+		resp[r.InstanceID] = map[string]DimensionReport{}
+		for _, d := range DefaultReportDimensions[params.category] {
+			resp[r.InstanceID][d.Name] = DimensionReport{}
+		}
+	}
+
+	dimensionsBytes, jsonError := json.Marshal(dimensions)
 	if jsonError != nil {
-		err <- jsonError
+		params.err <- jsonError
 		return
 	}
-	max, avg := make(chan []Datapoint), make(chan []Datapoint)
-	maxData, avgData := <-max, <-avg
+
+	type PeakData struct {
+		ReportDimension
+		Datapoints []Datapoint
+	}
+	maxChan, avgChan, errChan := make(chan PeakData), make(chan PeakData), make(chan error)
+
+	namespace := getNamespace(params.category)
+	getPeakDataOrderBy := func(d ReportDimension, orderBy string, data chan PeakData) {
+
+		datapoints, err := aliyun.GetMetricTop(&GetMetricTopParams{
+			GetMetricListParams: GetMetricListParams{
+				Dimensions: string(dimensionsBytes),
+				StartTime:  params.StartTime,
+				EndTime:    params.EndTime,
+				Namespace:  namespace,
+				MetricName: d.Name,
+			},
+			Orderby: orderBy,
+		})
+		if err != nil {
+			errChan <- err
+			return
+		}
+		data <- PeakData{d, datapoints}
+	}
+
+	for _, d := range DefaultReportDimensions[params.category] {
+		go getPeakDataOrderBy(d, "Maximum", maxChan)
+		go getPeakDataOrderBy(d, "Average", avgChan)
+	}
+
+	var errs string
+	select {
+	case max := <-maxChan:
+		for _, datapoint := range max.Datapoints {
+			v := resp[datapoint.InstanceID][max.Name]
+			v.Max = fmt.Sprintf("%v", datapoint.Maximum)
+		}
+	case avg := <-avgChan:
+		for _, datapoint := range avg.Datapoints {
+			v := resp[datapoint.InstanceID][avg.Name]
+			v.Max = fmt.Sprintf("%v", datapoint.Average)
+		}
+	case e := <-errChan:
+		errs += e.Error()
+	}
+	fmt.Println(resp)
+	params.err <- fmt.Errorf(errs)
 }
 
 // GetMetricReport html
@@ -106,8 +172,9 @@ func (aliyun *Aliyun) GetMetricReport(params *GetMetricReportParams) (html strin
 		}
 		d[item.Category] = append(d[item.Category], item)
 	}
-	for _, y := range d {
-		go aliyun.getMetricReport(y, report, errs, quit)
+	for category, y := range d {
+		go aliyun.getMetricReport(getMetricReportParams{params, category, y, report, errs})
+		break
 	}
 	resp := &MetricReportResponse{
 		Report: map[string][]MetricReport{},
