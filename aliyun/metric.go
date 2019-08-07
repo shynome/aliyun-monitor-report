@@ -60,7 +60,7 @@ func (aliyun *Aliyun) GetMetricList(params *GetMetricListParams) (response *cms.
 // GetMetricTopParams type
 type GetMetricTopParams struct {
 	GetMetricListParams
-	Orderby string
+	Orderby string // Maximum Average
 }
 
 // GetMetricTop data
