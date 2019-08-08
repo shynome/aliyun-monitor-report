@@ -121,7 +121,7 @@ func (aliyun *Aliyun) notWorkGetMetricTop(params *GetMetricTopParams) (datapoint
 	request.StartTime = params.StartTime
 	request.EndTime = params.EndTime
 	request.Orderby = orderBy
-	request.Length = "1"
+	// request.Length = "1"
 	request.OrderDesc = "False"
 
 	response, err := client.DescribeMetricTop(request)
