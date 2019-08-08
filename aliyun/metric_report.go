@@ -262,12 +262,9 @@ func (aliyun *Aliyun) GetMetricReport(params *GetMetricReportParams) (html strin
 		}
 		d[item.Category] = append(d[item.Category], item)
 	}
+
 	for category, y := range d {
-		if category != "ECS" {
-			continue
-		}
 		go aliyun.getMetricReport(getMetricReportParams{params, category, y, report})
-		break
 	}
 	resp := &MetricReportResponse{
 		Report: map[string][]MetricReport{},
@@ -281,7 +278,8 @@ func (aliyun *Aliyun) GetMetricReport(params *GetMetricReportParams) (html strin
 		resp.Report[r.Category] = append(resp.Report[r.Category], r)
 	}
 
-	fmt.Println(resp)
+	r, _ := json.Marshal(resp)
+	fmt.Println(r)
 
 	return
 }
