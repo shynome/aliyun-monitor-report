@@ -15,16 +15,17 @@ type GetMetricReportParams struct {
 
 // DimensionReport of instance
 type DimensionReport struct {
-	Name        string
-	DisplayName string
-	Max         string
-	Avg         string
+	ReportDimension
+	Error error
+	Max   float64
+	Avg   float64
 }
 
 // MetricReport type
 type MetricReport struct {
-	GroupResource
-	Report []DimensionReport
+	*GroupResource
+	Dimensions []*DimensionReport
+	Error      error
 }
 
 // MetricReportResponse type
@@ -47,25 +48,25 @@ var DefaultReportDimensions = map[string][]ReportDimension{
 		{"连接数", "concurrentConnections"},
 	},
 	"RDS": {
-		{"CPU 使用率", ""},
-		{"内存使用率", ""},
-		{"连接数使用率", ""},
+		{"CPU 使用率", "CpuUsage"},
+		{"内存使用率", "MemoryUsage"},
+		{"连接数使用率", "ConnectionUsage"},
 	},
 	"KVSTORE": {
-		{"CPU 使用率", ""},
-		{"内存使用率", ""},
-		{"连接数使用率", ""},
+		{"CPU 使用率", "CpuUsage"},
+		{"内存使用率", "MemoryUsage"},
+		{"连接数使用率", "ConnectionUsage"},
 	},
 	"SLB": {
-		{"CPU 使用率", ""},
-		{"内存使用率", ""},
-		{"连接数使用率", ""},
+		{"流入带宽", "TrafficRXNew"},
+		{"活跃连接数", "ActiveConnection"},
+		{"并发连接数", "MaxConnection"},
 	},
-	"CDN": {
-		{"宽带峰值", ""},
-		{"下行流量", ""},
-		{"QPS", ""},
-	},
+	// "CDN": {
+	// 	{"宽带峰值", ""},
+	// 	{"下行流量", ""},
+	// 	{"QPS", ""},
+	// },
 }
 
 type getMetricReportParams struct {
@@ -73,41 +74,86 @@ type getMetricReportParams struct {
 	category  string
 	resources []*GroupResource
 	report    chan MetricReport
-	err       chan error
 }
 
 func getNamespace(category string) string {
-	return "acs_" + strings.ToLower(category)
+	category = "acs_" + strings.ToLower(category)
+	switch category {
+	case "acs_slb":
+		category = "acs_slb_dashboard"
+	case "acs_ecs":
+		category = "acs_ecs_dashboard"
+	case "acs_rds":
+		category = "acs_rds_dashboard"
+	case "acs_apigateway":
+		category = "acs_apigateway_dashboard"
+	case "acs_containerservice":
+		category = "acs_containerservice_dashboard"
+	case "acs_ehpc":
+		category = "acs_ehpc_dashboard"
+	case "acs_ess":
+		category = "acs_ess_dashboard"
+	case "acs_oss":
+		category = "acs_oss_dashboard"
+	case "acs_sls":
+		category = "acs_sls_dashboard"
+	}
+	return category
 }
+
+var (
+	orderByMax = "Maximum"
+	orderByAvg = "Average"
+)
 
 func (aliyun *Aliyun) getMetricReport(params getMetricReportParams) {
 
-	resp := map[string]map[string]DimensionReport{}
+	resp := map[string]map[string]*DimensionReport{}
 	dimensions := make([]Dimension, len(params.resources))
+	finish := func(err error) {
+		if err != nil {
+			for _, r := range params.resources {
+				params.report <- MetricReport{
+					GroupResource: r,
+					Error:         err,
+				}
+			}
+			return
+		}
+		for _, r := range params.resources {
+			d := make([]*DimensionReport, len(dimensions))
+			for _, v := range resp[r.InstanceID] {
+				d = append(d, v)
+			}
+			params.report <- MetricReport{
+				GroupResource: r,
+				Dimensions:    d,
+			}
+		}
+	}
 
 	for i, r := range params.resources {
 		dimensions[i] = Dimension{InstanceID: r.InstanceID}
-		resp[r.InstanceID] = map[string]DimensionReport{}
+		resp[r.InstanceID] = map[string]*DimensionReport{}
 		for _, d := range DefaultReportDimensions[params.category] {
-			resp[r.InstanceID][d.Name] = DimensionReport{}
+			resp[r.InstanceID][d.Name] = &DimensionReport{ReportDimension: d}
 		}
 	}
 
 	dimensionsBytes, jsonError := json.Marshal(dimensions)
 	if jsonError != nil {
-		params.err <- jsonError
+		finish(jsonError)
 		return
 	}
 
 	type PeakData struct {
 		ReportDimension
 		Datapoints []Datapoint
+		Error      error
 	}
-	maxChan, avgChan, errChan := make(chan PeakData), make(chan PeakData), make(chan error)
 
 	namespace := getNamespace(params.category)
-	getPeakDataOrderBy := func(d ReportDimension, orderBy string, data chan PeakData) {
-
+	getPeakData := func(d ReportDimension, orderBy string) PeakData {
 		datapoints, err := aliyun.GetMetricTop(&GetMetricTopParams{
 			GetMetricListParams: GetMetricListParams{
 				Dimensions: string(dimensionsBytes),
@@ -118,35 +164,81 @@ func (aliyun *Aliyun) getMetricReport(params getMetricReportParams) {
 			},
 			Orderby: orderBy,
 		})
+		peakData := PeakData{ReportDimension: d}
 		if err != nil {
-			errChan <- err
+			peakData.Error = err
+		} else {
+			peakData.Datapoints = datapoints
+		}
+		return peakData
+	}
+
+	dealPeakData := func(orderBy string, peakData PeakData) {
+
+		var setDimension func(v *DimensionReport, datapoint Datapoint)
+
+		if orderBy != orderByMax && orderBy != orderByAvg {
 			return
 		}
-		data <- PeakData{d, datapoints}
+		if orderBy == orderByMax {
+			setDimension = func(v *DimensionReport, datapoint Datapoint) {
+				if v.Max > datapoint.Maximum {
+					return
+				}
+				v.Max = datapoint.Maximum
+			}
+		}
+		if orderBy == orderByAvg {
+			setDimension = func(v *DimensionReport, datapoint Datapoint) {
+				if v.Avg > datapoint.Average {
+					return
+				}
+				v.Avg = datapoint.Average
+			}
+		}
+
+		for _, datapoint := range peakData.Datapoints {
+			v := resp[datapoint.InstanceID][peakData.Name]
+			if peakData.Error != nil {
+				v.Error = peakData.Error
+				continue
+			}
+			setDimension(v, datapoint)
+		}
+		return
+	}
+
+	dealMaxCount, dealAvgCount := 0, 0
+	endCount := len(DefaultReportDimensions[params.category])
+	dealMaxChan, dealAvgChan := make(chan int), make(chan int)
+	dealDimension := func(orderBy string, d ReportDimension) {
+		peakData := getPeakData(d, orderBy)
+		dealPeakData(orderBy, peakData)
+		if orderBy == orderByMax {
+			dealMaxCount++
+			if dealMaxCount == endCount {
+				dealMaxChan <- 0
+			}
+		}
+		if orderBy == orderByAvg {
+			dealAvgCount++
+			if dealAvgCount == endCount {
+				dealAvgChan <- 0
+			}
+		}
 	}
 
 	for _, d := range DefaultReportDimensions[params.category] {
-		go getPeakDataOrderBy(d, "Maximum", maxChan)
-		go getPeakDataOrderBy(d, "Average", avgChan)
+		go dealDimension(orderByMax, d)
+		go dealDimension(orderByAvg, d)
 	}
 
-	var errs string
-	select {
-	case max := <-maxChan:
-		for _, datapoint := range max.Datapoints {
-			v := resp[datapoint.InstanceID][max.Name]
-			v.Max = fmt.Sprintf("%v", datapoint.Maximum)
-		}
-	case avg := <-avgChan:
-		for _, datapoint := range avg.Datapoints {
-			v := resp[datapoint.InstanceID][avg.Name]
-			v.Max = fmt.Sprintf("%v", datapoint.Average)
-		}
-	case e := <-errChan:
-		errs += e.Error()
-	}
-	fmt.Println(resp)
-	params.err <- fmt.Errorf(errs)
+	<-dealMaxChan
+	<-dealAvgChan
+
+	finish(nil)
+	return
+
 }
 
 // GetMetricReport html
@@ -159,9 +251,7 @@ func (aliyun *Aliyun) GetMetricReport(params *GetMetricReportParams) (html strin
 	if err != nil {
 		return
 	}
-	errs := make(chan error, len(resources))
 	report := make(chan MetricReport, len(resources))
-	quit := make(chan int)
 	d := map[string][]*GroupResource{}
 	for _, item := range resources {
 		if item.InstanceID == "" {
@@ -173,31 +263,25 @@ func (aliyun *Aliyun) GetMetricReport(params *GetMetricReportParams) (html strin
 		d[item.Category] = append(d[item.Category], item)
 	}
 	for category, y := range d {
-		go aliyun.getMetricReport(getMetricReportParams{params, category, y, report, errs})
+		if category != "ECS" {
+			continue
+		}
+		go aliyun.getMetricReport(getMetricReportParams{params, category, y, report})
 		break
 	}
 	resp := &MetricReportResponse{
 		Report: map[string][]MetricReport{},
 	}
-	cursor := 0
-	finishOne := func() {
-		cursor++
-		if cursor == len(resources) {
-			quit <- 0
-		}
-	}
-	select {
-	case r := <-report:
+
+	for cursor := 0; cursor < len(resources); cursor++ {
+		r := <-report
 		if resp.Report[r.Category] == nil {
 			resp.Report[r.Category] = []MetricReport{}
 		}
 		resp.Report[r.Category] = append(resp.Report[r.Category], r)
-		finishOne()
-	case e := <-errs:
-		resp.Errors = append(resp.Errors, e.Error())
-		finishOne()
-	case <-quit:
-		break
 	}
+
+	fmt.Println(resp)
+
 	return
 }
