@@ -10,7 +10,7 @@ import (
 
 // Top metric
 func Top(c echo.Context) (err error) {
-	params := &AliyunType.GetMetricListParams{}
+	params := &AliyunType.GetMetricTopParams{}
 	if err = c.Bind(params); err != nil {
 		return
 	}
