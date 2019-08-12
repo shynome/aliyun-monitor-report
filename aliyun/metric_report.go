@@ -16,7 +16,7 @@ type GetMetricReportParams struct {
 // DimensionReport of instance
 type DimensionReport struct {
 	ReportDimension
-	Error error
+	Error string
 	Max   float64
 	Avg   float64
 }
@@ -25,13 +25,13 @@ type DimensionReport struct {
 type MetricReport struct {
 	*GroupResource
 	Dimensions []*DimensionReport
-	Error      error
+	Error      string
 }
 
 // MetricReportResponse type
 type MetricReportResponse struct {
 	Errors []string
-	Report map[string][]MetricReport
+	Report map[string][]*MetricReport
 }
 
 // ReportDimension type
@@ -73,7 +73,7 @@ type getMetricReportParams struct {
 	*GetMetricReportParams
 	category  string
 	resources []*GroupResource
-	report    chan MetricReport
+	report    chan *MetricReport
 }
 
 func getNamespace(category string) string {
@@ -113,19 +113,19 @@ func (aliyun *Aliyun) getMetricReport(params getMetricReportParams) {
 	finish := func(err error) {
 		if err != nil {
 			for _, r := range params.resources {
-				params.report <- MetricReport{
+				params.report <- &MetricReport{
 					GroupResource: r,
-					Error:         err,
+					Error:         err.Error(),
 				}
 			}
 			return
 		}
 		for _, r := range params.resources {
-			d := make([]*DimensionReport, len(dimensions))
+			var d []*DimensionReport
 			for _, v := range resp[r.InstanceID] {
 				d = append(d, v)
 			}
-			params.report <- MetricReport{
+			params.report <- &MetricReport{
 				GroupResource: r,
 				Dimensions:    d,
 			}
@@ -149,7 +149,7 @@ func (aliyun *Aliyun) getMetricReport(params getMetricReportParams) {
 	type PeakData struct {
 		ReportDimension
 		Datapoints []Datapoint
-		Error      error
+		Error      string
 	}
 
 	namespace := getNamespace(params.category)
@@ -166,7 +166,7 @@ func (aliyun *Aliyun) getMetricReport(params getMetricReportParams) {
 		})
 		peakData := PeakData{ReportDimension: d}
 		if err != nil {
-			peakData.Error = err
+			peakData.Error = err.Error()
 		} else {
 			peakData.Datapoints = datapoints
 		}
@@ -199,7 +199,7 @@ func (aliyun *Aliyun) getMetricReport(params getMetricReportParams) {
 
 		for _, datapoint := range peakData.Datapoints {
 			v := resp[datapoint.InstanceID][peakData.Name]
-			if peakData.Error != nil {
+			if peakData.Error != "" {
 				v.Error = peakData.Error
 				continue
 			}
@@ -210,6 +210,13 @@ func (aliyun *Aliyun) getMetricReport(params getMetricReportParams) {
 
 	dealMaxCount, dealAvgCount := 0, 0
 	endCount := len(DefaultReportDimensions[params.category])
+
+	if endCount == 0 {
+		err := fmt.Errorf("the category %v has no preset dimension to collect", params.category)
+		finish(err)
+		return
+	}
+
 	dealMaxChan, dealAvgChan := make(chan int), make(chan int)
 	dealDimension := func(orderBy string, d ReportDimension) {
 		peakData := getPeakData(d, orderBy)
@@ -241,8 +248,8 @@ func (aliyun *Aliyun) getMetricReport(params getMetricReportParams) {
 
 }
 
-// GetMetricReport html
-func (aliyun *Aliyun) GetMetricReport(params *GetMetricReportParams) (html string, err error) {
+// GetMetricReport json
+func (aliyun *Aliyun) GetMetricReport(params *GetMetricReportParams) (resp *MetricReportResponse, err error) {
 	if params.StartTime == "" || params.EndTime == "" {
 		err = fmt.Errorf("开始时间和结束时间必须要指定, 格式支持 2000-01-01 00:00:00, 并且结束时间不能大于开始时间")
 		return
@@ -251,7 +258,7 @@ func (aliyun *Aliyun) GetMetricReport(params *GetMetricReportParams) (html strin
 	if err != nil {
 		return
 	}
-	report := make(chan MetricReport, len(resources))
+	report := make(chan *MetricReport, len(resources))
 	d := map[string][]*GroupResource{}
 	for _, item := range resources {
 		if item.InstanceID == "" {
@@ -263,23 +270,22 @@ func (aliyun *Aliyun) GetMetricReport(params *GetMetricReportParams) (html strin
 		d[item.Category] = append(d[item.Category], item)
 	}
 
+	end := 0
 	for category, y := range d {
 		go aliyun.getMetricReport(getMetricReportParams{params, category, y, report})
+		end = end + len(y)
 	}
-	resp := &MetricReportResponse{
-		Report: map[string][]MetricReport{},
+	resp = &MetricReportResponse{
+		Report: map[string][]*MetricReport{},
 	}
 
-	for cursor := 0; cursor < len(resources); cursor++ {
+	for cursor := 0; cursor < end; cursor++ {
 		r := <-report
 		if resp.Report[r.Category] == nil {
-			resp.Report[r.Category] = []MetricReport{}
+			resp.Report[r.Category] = []*MetricReport{}
 		}
 		resp.Report[r.Category] = append(resp.Report[r.Category], r)
 	}
-
-	r, _ := json.Marshal(resp)
-	fmt.Println(r)
 
 	return
 }
