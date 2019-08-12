@@ -62,11 +62,11 @@ var DefaultReportDimensions = map[string][]ReportDimension{
 		{"活跃连接数", "ActiveConnection"},
 		{"并发连接数", "MaxConnection"},
 	},
-	// "CDN": {
-	// 	{"宽带峰值", ""},
-	// 	{"下行流量", ""},
-	// 	{"QPS", ""},
-	// },
+	"CDN": {
+		{"宽带峰值", "BPS"},
+		{"下行流量", "InternetOut"},
+		{"QPS", "QPS"},
+	},
 }
 
 type getMetricReportParams struct {
