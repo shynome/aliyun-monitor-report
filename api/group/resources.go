@@ -16,6 +16,9 @@ func Resources(c echo.Context) (err error) {
 	}
 	aliyunInstance := c.(*aliyun.Context).GetAliyunInstance()
 	res, err := aliyunInstance.GetGroupResources(params)
+	if err != nil {
+		return
+	}
 	c.JSON(http.StatusOK, res)
 	return
 }

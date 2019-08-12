@@ -8,14 +8,14 @@ import (
 	aliyun "github.com/shynome/aliyun-monitor-report/aliyun/echo"
 )
 
-// Top metric
-func Top(c echo.Context) (err error) {
-	params := &AliyunType.GetMetricTopParams{}
+// Report metric
+func Report(c echo.Context) (err error) {
+	params := &AliyunType.GetMetricReportParams{}
 	if err = c.Bind(params); err != nil {
 		return
 	}
 	aliyunInstance := c.(*aliyun.Context).GetAliyunInstance()
-	res, err := aliyunInstance.GetMetricTop(params)
+	res, err := aliyunInstance.GetMetricReport(params)
 	if err != nil {
 		return
 	}
