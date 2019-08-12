@@ -17,6 +17,7 @@ func Report(c echo.Context) (err error) {
 	aliyunInstance := c.(*aliyun.Context).GetAliyunInstance()
 	res, err := aliyunInstance.GetMetricReport(params)
 	if err != nil {
+		c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, res)
